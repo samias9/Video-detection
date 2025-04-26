@@ -56,9 +56,6 @@ class VideoApp:
         # Variables pour stocker les références aux icônes (important!)
         self.icons = {}
 
-        # Stockage des objets sélectionnés
-        self.selected_objects = {}
-
         # Confettis actifs
         self.confetti_particles = []
         self.confetti_active = False
@@ -222,7 +219,7 @@ class VideoApp:
         # Titre
         title_label = tk.Label(
             ready_window,
-            text="Êtes-vous prêts à choisir les objets?",
+            text="Êtes-vous prêts à jouer?",
             font=("Helvetica", 14, "bold"),
             bg=COLORS["background"],
             fg=COLORS["text"]
@@ -247,7 +244,7 @@ class VideoApp:
         btn_yes = TextOnlyButton(
             buttons_frame,
             text="Oui, commencer!",
-            command=lambda: (ready_window.destroy(), self.show_selection_mode_dialog()),
+            command=lambda: (ready_window.destroy(), self.select_random_objects()),
             width=15,
             color=COLORS["primary"]
         )
@@ -261,256 +258,6 @@ class VideoApp:
             color=COLORS["accent"]
         )
         btn_no.pack(side=tk.LEFT, padx=10)
-
-    def show_selection_mode_dialog(self):
-        # Boîte de dialogue pour le mode de sélection
-        mode_window = Toplevel(self.root)
-        mode_window.title("Mode de sélection")
-        mode_window.geometry("400x300")
-        mode_window.configure(bg=COLORS["background"])
-
-        # Centre la fenêtre
-        self.center_window(mode_window, 400, 300)
-
-        # Titre
-        title_label = tk.Label(
-            mode_window,
-            text="Comment choisir les objets?",
-            font=("Helvetica", 14, "bold"),
-            bg=COLORS["background"],
-            fg=COLORS["text"]
-        )
-        title_label.pack(pady=20)
-
-        # Options
-        options_frame = tk.Frame(mode_window, bg=COLORS["background"])
-        options_frame.pack(pady=10)
-
-        # Option manuelle
-        manual_frame = tk.Frame(options_frame, bg=COLORS["background"], padx=15, pady=10)
-        manual_frame.pack(side=tk.LEFT)
-
-        btn_manual = TextOnlyButton(
-            manual_frame,
-            text="Choisir manuellement",
-            command=lambda: (mode_window.destroy(), self.show_object_selection()),
-            width=20,
-            color=COLORS["primary"]
-        )
-        btn_manual.pack()
-
-        manual_info = tk.Label(
-            manual_frame,
-            text="Sélectionner vous-mêmes\nles objets à trouver",
-            bg=COLORS["background"],
-            fg=COLORS["text"]
-        )
-        manual_info.pack(pady=(5, 0))
-
-        # Option aléatoire
-        random_frame = tk.Frame(options_frame, bg=COLORS["background"], padx=15, pady=10)
-        random_frame.pack(side=tk.LEFT)
-
-        btn_random = TextOnlyButton(
-            random_frame,
-            text="Choix aléatoire",
-            command=lambda: (mode_window.destroy(), self.select_random_objects()),
-            width=20,
-            color=COLORS["accent"]
-        )
-        btn_random.pack()
-
-        random_info = tk.Label(
-            random_frame,
-            text="Le jeu sélectionne aléatoirement\n5 objets à trouver",
-            bg=COLORS["background"],
-            fg=COLORS["text"]
-        )
-        random_info.pack(pady=(5, 0))
-
-    def show_object_selection(self):
-        select_window = Toplevel(self.root)
-        select_window.title("Sélection des objets à détecter")
-        select_window.geometry("500x600")
-        select_window.configure(bg=COLORS["background"])
-
-        # Centre la fenêtre
-        self.center_window(select_window, 500, 600)
-
-        # Titre
-        title_frame = tk.Frame(select_window, bg=COLORS["primary"], pady=15)
-        title_frame.pack(fill=tk.X)
-
-        title_label = tk.Label(
-            title_frame,
-            text="Sélection des objets à détecter",
-            font=("Helvetica", 16, "bold"),
-            bg=COLORS["primary"],
-            fg=COLORS["light_text"]
-        )
-        title_label.pack()
-
-        # Instructions
-        instructions = tk.Label(
-            select_window,
-            text="Sélectionnez les objets que vous souhaitez détecter avec la webcam",
-            font=("Helvetica", 11),
-            bg=COLORS["background"],
-            fg=COLORS["text"],  # Texte en bleu
-            wraplength=450,
-            justify=tk.CENTER
-        )
-        instructions.pack(pady=15)
-
-        # Charger les objets détectables depuis YOLO
-        detectable_objects = get_detectable_objects()
-
-        # Création du cadre de défilement
-        objects_frame = tk.Frame(select_window, bg=COLORS["background"], padx=20)
-        objects_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Cadre de défilement pour contenir les objets
-        scroll_frame = tk.Frame(objects_frame, bg=COLORS["background"])
-        scroll_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Barre de défilement
-        scrollbar = tk.Scrollbar(scroll_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Zone de texte avec défilement
-        object_canvas = tk.Canvas(
-            scroll_frame,
-            bg=COLORS["background"],
-            yscrollcommand=scrollbar.set,
-            highlightthickness=0
-        )
-        object_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        scrollbar.config(command=object_canvas.yview)
-
-        # Cadre pour les checkboxes
-        checkbox_frame = tk.Frame(object_canvas, bg=COLORS["background"])
-        checkbox_window = object_canvas.create_window((0, 0), window=checkbox_frame, anchor='nw')
-
-        # Créer les variables de contrôle et checkboxes
-        self.selected_objects = {}
-
-        # Bouton pour tout sélectionner
-        select_all_var = tk.BooleanVar(value=False)
-
-        def toggle_all():
-            select_all = select_all_var.get()
-            for obj, var in self.selected_objects.items():
-                var.set(select_all)
-
-        select_all_btn = ObjectCheckButton(
-            checkbox_frame,
-            text="Sélectionner tout",
-            var=select_all_var,
-            command=toggle_all,
-            font=("Helvetica", 12, "bold")
-        )
-        select_all_btn.pack(anchor="w", pady=(5, 10))
-
-        # Organiser les objets en catégories (exemple simple)
-        categories = {
-            "Personnes": ["person"],
-            "Véhicules": ["car", "truck", "bus", "bicycle", "motorcycle"],
-            "Animaux": ["dog", "cat", "bird", "cow", "horse", "sheep", "bear"],
-            "Objets courants": ["cup", "bottle", "chair", "sofa", "tv", "laptop", "cell phone"]
-        }
-
-        # Objets qui ne sont pas dans les catégories
-        other_objects = [obj for obj in detectable_objects
-                        if not any(obj in cat_objects for cat_objects in categories.values())]
-        categories["Autres"] = other_objects
-
-        # Ajouter les objets par catégorie
-        for category, objects in categories.items():
-            # Titre de catégorie
-            cat_label = tk.Label(
-                checkbox_frame,
-                text=category,
-                font=("Helvetica", 12, "bold"),
-                bg=COLORS["background"],
-                fg=COLORS["text"]  # Texte en bleu
-            )
-            cat_label.pack(anchor="w", pady=(10, 5))
-
-            # Cadre pour les objets de cette catégorie
-            cat_frame = tk.Frame(checkbox_frame, bg=COLORS["background"])
-            cat_frame.pack(fill=tk.X, padx=15)
-
-            # Arrangement en grille
-            col = 0
-            row = 0
-            max_cols = 2
-
-            # Filtrer pour n'inclure que les objets disponibles
-            objects_in_category = [obj for obj in objects if obj in detectable_objects]
-
-            for obj in objects_in_category:
-                # Variable de contrôle
-                var = tk.BooleanVar(value=True)  # Par défaut sélectionné
-                self.selected_objects[obj] = var
-
-                # Création du checkbox
-                obj_check = ObjectCheckButton(
-                    cat_frame,
-                    text=obj,
-                    var=var
-                )
-                obj_check.grid(row=row, column=col, sticky="w", pady=2, padx=5)
-
-                # Passage à la colonne/ligne suivante
-                col += 1
-                if col >= max_cols:
-                    col = 0
-                    row += 1
-
-        # Configurer le scrolling
-        def configure_scroll(event):
-            object_canvas.configure(scrollregion=object_canvas.bbox("all"))
-            object_canvas.itemconfig(checkbox_window, width=event.width)
-
-        checkbox_frame.bind("<Configure>", configure_scroll)
-
-        # Boutons d'action
-        buttons_frame = tk.Frame(select_window, bg=COLORS["background"], pady=15)
-        buttons_frame.pack(fill=tk.X)
-
-        # Bouton pour continuer
-        continue_btn = TextOnlyButton(
-            buttons_frame,
-            text="Démarrer la détection",
-            command=lambda: self.start_webcam_with_objects(select_window),
-            color=COLORS["primary"],
-            width=20
-        )
-        continue_btn.pack(side=tk.LEFT, padx=20)
-
-        # Bouton pour annuler
-        cancel_btn = TextOnlyButton(
-            buttons_frame,
-            text="Annuler",
-            command=select_window.destroy,
-            color=COLORS["accent"],
-            width=20
-        )
-        cancel_btn.pack(side=tk.RIGHT, padx=20)
-
-    def start_webcam_with_objects(self, select_window):
-        # Récupère la liste des objets sélectionnés
-        objects_to_detect = [obj for obj, var in self.selected_objects.items() if var.get()]
-
-        # Ferme la fenêtre de sélection
-        select_window.destroy()
-
-        # Cache la fenêtre principale
-        self.hide_main_window()
-
-        # Ouvre la fenêtre vidéo avec les objets sélectionnés
-        self.open_video_window(0, objects_to_detect)  # 0 représente la première webcam
 
     def select_file(self):
         file_path = filedialog.askopenfilename(
@@ -801,7 +548,7 @@ class VideoApp:
         end_game_btn.pack(side=tk.LEFT, padx=10)
 
         # Démarrer le timer
-        self.remaining_time = 10
+        self.remaining_time = self.max_time
         self.update_timer(game_window)
 
         # Démarrer la détection vidéo avec les objets spécifiques
@@ -886,7 +633,6 @@ class VideoApp:
                 # Afficher les résultats finaux avec notre nouvelle fonction
                 self.show_timeout_message(window, message, lambda: self.create_results_window(window))
 
-
     def show_timeout_message(self, window, message, callback=None):
         """Affiche un message quand le temps est écoulé"""
         timeout_window = Toplevel(window)
@@ -916,35 +662,6 @@ class VideoApp:
             color=COLORS["primary"]
         )
         continue_btn.pack(pady=10)
-    #Pas utilisée
-    def show_time_up_message(self, window):
-        """Affiche un message quand le temps est écoulé"""
-        if not hasattr(self, 'game_window') or not self.game_window.winfo_exists():
-            return
-
-        time_up_window = Toplevel(window)
-        time_up_window.title("Temps écoulé!")
-        time_up_window.geometry("300x150")
-        time_up_window.configure(bg=COLORS["background"])
-
-        # Centre la fenêtre
-        self.center_window(time_up_window, 300, 150)
-
-        # Message
-        msg_label = tk.Label(
-            time_up_window,
-            text="Temps écoulé! Passage au joueur suivant...",
-            font=("Helvetica", 12),
-            bg=COLORS["background"],
-            fg=COLORS["text"]
-        )
-        msg_label.pack(pady=20)
-
-        # Fermer le message après 2 secondes et passer au joueur suivant
-        time_up_window.after(2000, lambda: (
-            time_up_window.destroy(),
-            self.handle_player_switch(window, 0, list(self.object_vars.keys()))
-        ))
 
     def schedule_stop_detection(self, callback=None):
         """Arrêt programmé de la détection vidéo"""
@@ -1037,7 +754,7 @@ class VideoApp:
             self.start_player_turn(self.canvas_reference, window, video_source, objects_to_detect)
 
         else:  # Joueur 2 a terminé
-            self.player2_score = points  # Cette ligne est correcte mais les données ne sont pas conservées
+            self.player2_score = points
             self.player2_completed = all_found
             if all_found:
                 self.player2_time = time_used
@@ -1208,7 +925,7 @@ class VideoApp:
         elif self.player2_score > self.player1_score:
             winner_text = f"{self.player2_name} gagne avec {self.player2_score} objets trouvés !"
         else:
-            winner_text = "Match nul avec le même temps et le même nombre d'objets !"
+            winner_text = "Match nul avec le même nombre d'objets !"
 
         # Afficher le gagnant
         winner_label = tk.Label(
@@ -1513,6 +1230,7 @@ class VideoApp:
 
     def run(self):
         self.root.mainloop()
+
 # Point d'entrée de l'application
 if __name__ == "__main__":
     app = VideoApp()
