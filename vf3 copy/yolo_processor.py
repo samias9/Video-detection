@@ -54,6 +54,7 @@ def get_detected_objects_list():
     with processing_lock:
         return [model.names[cls_id] for cls_id in detected_objects_set if cls_id in model.names]
 
+
 def show_victory_message(window, objects_detected):
     """Affiche un message de victoire dans une fenêtre pop-up"""
     try:
